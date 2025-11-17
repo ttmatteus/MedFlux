@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -44,6 +46,8 @@ const Login: React.FC = () => {
     e.preventDefault();
     // TODO: implementar lógica de login fazer dps 
     console.log('Login:', { email, password });
+    // Redireciona para o dashboard após o login
+    navigate('/dashboard');
   };
 
   return (
@@ -121,8 +125,8 @@ const Login: React.FC = () => {
                             </label>
                             <input 
                             id="password"
-                            type="text"
-                            value={email}
+                            type="password"
+                            value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Senha"
                             className={inputBaseClasses}
