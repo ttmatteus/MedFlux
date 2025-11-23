@@ -3,8 +3,12 @@ import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
 
     //estilos
    const COLORS = {
@@ -41,12 +45,39 @@ const Login: React.FC = () => {
 
   const labelClasses = 'block text-sm font-medium text-gray-700 mb-2';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: implementar lógica de login fazer dps 
-    console.log('Login:', { email, password });
-    // Redireciona para o dashboard após o login
-    navigate('/dashboard');
+    setErrorMessage('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/sessions/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData.detail || 'Não foi possível fazer login.';
+        throw new Error(detail);
+      }
+
+      const data = await response.json();
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('authUser', JSON.stringify(data.user));
+
+      navigate('/dashboard');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Erro inesperado ao fazer login.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,7 +114,7 @@ const Login: React.FC = () => {
 
                     {/* form */}
                     <form onSubmit={handleSubmit} className="flex flex-col items-center">
-                        {/* campo email */}
+                        {/* campo usuário */}
                         <div
                             className="mb-[20px]"
                             style={{
@@ -91,17 +122,18 @@ const Login: React.FC = () => {
                                 height: SIZES.fieldHeight
                             }}
                         >
-                            <label htmlFor="email" className={labelClasses}>
-                                Email
+                            <label htmlFor="username" className={labelClasses}>
+                                Usuário
                             </label>
                             <input 
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email"
+                            id="username"
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Digite seu usuário"
                             className={inputBaseClasses}
                             required 
+                            disabled={isLoading}
                             />
                         </div>
 
@@ -124,6 +156,7 @@ const Login: React.FC = () => {
                             placeholder="Senha"
                             className={inputBaseClasses}
                             required 
+                            disabled={isLoading}
                             />
                         </div>
 
@@ -145,10 +178,17 @@ const Login: React.FC = () => {
                                 lineHeight: '25px',
                                 color: '#ffffff',
                             }}
+                            disabled={isLoading}
                         >
-                            Login
+                            {isLoading ? 'Entrando...' : 'Login'}
                         </button>
                     </form>
+
+                    {errorMessage && (
+                      <p className="mt-4 text-sm text-red-600 text-center" style={{ width: SIZES.fieldWidth }}>
+                        {errorMessage}
+                      </p>
+                    )}
 
                     {/* esqueci minha senha */}
                     <div

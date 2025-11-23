@@ -59,19 +59,25 @@ def init_database():
         )
     """)
     
-    # Inserir usuário admin padrão (apenas para desenvolvimento)
-    try:
-        hashed = pwd_context.hash("admin123")
-        cursor.execute(
-            """
-            INSERT INTO users (username, password_hash, role)
-            VALUES (?, ?, ?)
-            """,
-            ("admin", hashed, "admin"),
-        )
-        print("[OK] Usuario admin criado (username: admin, password: admin123)")
-    except sqlite3.IntegrityError:
-        print("[INFO] Usuario admin ja existe")
+    # Usuários padrão
+    default_users = [
+        ("admin", "admin123", "admin"),
+        ("rafaelatexeira", "rafa123", "admin"),
+    ]
+
+    for username, password, role in default_users:
+        try:
+            hashed = pwd_context.hash(password)
+            cursor.execute(
+                """
+                INSERT INTO users (username, password_hash, role)
+                VALUES (?, ?, ?)
+                """,
+                (username, hashed, role),
+            )
+            print(f"[OK] Usuario {username} criado (senha: {password})")
+        except sqlite3.IntegrityError:
+            print(f"[INFO] Usuario {username} ja existe")
     
     conn.commit()
     conn.close()
