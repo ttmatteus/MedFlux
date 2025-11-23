@@ -9,7 +9,7 @@ interface PasswordCardProps {
 const PasswordCard: React.FC<PasswordCardProps> = ({ card }) => {
   const label = card.type === 'próxima' ? "Próxima Senha" : "Última Senha:";
   return (
-    <div className="bg-white rounded-lg p-4 shadow-sm relative transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer"
+    <div className="bg-white rounded-lg p-4 shadow-sm relative hover:bg-gray-100 cursor-pointer"
       style={{ width: '237px', height: '168px' }}
     >
       <div className="flex items-center mb-2">
