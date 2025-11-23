@@ -6,7 +6,7 @@ V = TypeVar("V")
 class HashTable(Generic[K, V]):
 
     def __init__(self) -> None:
-        self._data: Dict[(K, V)] = {}
+        self._data: Dict[K, V] = {}
 
     def set(self, key: K, value: V) -> None:
         self._data[key] = value
@@ -19,3 +19,9 @@ class HashTable(Generic[K, V]):
 
     def items(self) -> Iterator[Tuple[K, V]]:
         return self._data.items()
+
+    def __contains__(self, key: K) -> bool:
+        return key in self._data
+
+    def __len__(self) -> int:
+        return len(self._data)
