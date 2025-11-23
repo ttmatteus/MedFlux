@@ -22,7 +22,7 @@ class LoginPayload(BaseModel):
 
 
 class LogoutPayload(BaseModel):
-    token: str = Field(..., min_length=32, max_length=64)
+    token: str = Field(..., min_length=10, max_length=2048)
 
     @validator("token")
     def validate_token(cls, value: str):  
