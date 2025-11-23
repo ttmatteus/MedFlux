@@ -1,27 +1,161 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Calendar, Clock, FileText } from "lucide-react";
 import Header from "../components/dashboard/Header";
+import { useTriageContext } from "../contexts/TriageContext";
+import { PRIORITY_BADGE_STYLES, PriorityLevel } from "../constants/priority";
+
+const FALLBACK_PRIORITY: PriorityLevel = "Emergência";
+const FALLBACK_PRIORITY_COLOR = PRIORITY_BADGE_STYLES[FALLBACK_PRIORITY].hex;
 
 const FichaPaciente: React.FC = () => {
+  const navigate = useNavigate();
+  const { latestSnapshot, setLatestSnapshot } = useTriageContext();
+
+  if (!latestSnapshot) {
+    return (
+      <div className="min-h-screen bg-[#F4F5F5] overflow-x-hidden w-full">
+        <Header showSearch={true} />
+
+        <div style={{ maxWidth: "1440px", margin: "0 auto" }}>
+          <div
+            className="w-full"
+            style={{ paddingLeft: "135px", paddingRight: "135px", paddingBottom: "50px" }}
+          >
+            <div className="mb-8" style={{ marginTop: "calc(150px - 80px)" }}>
+              <nav
+                className="flex items-center"
+                style={{ fontFamily: "Inter", fontSize: "14px", lineHeight: "24px" }}
+              >
+                <Link
+                  to="/dashboard"
+                  className="hover:underline cursor-pointer"
+                  style={{ color: "#848484", fontWeight: 400 }}
+                >
+                  Dashboard
+                </Link>
+                <ChevronRight
+                  size={20}
+                  style={{ color: "#848484", marginLeft: "8px", marginRight: "8px" }}
+                />
+                <Link
+                  to="/triagem"
+                  className="hover:underline cursor-pointer"
+                  style={{ color: "#848484", fontWeight: 400 }}
+                >
+                  Fluxo de Triagem
+                </Link>
+                <ChevronRight
+                  size={20}
+                  style={{ color: "#000000", marginLeft: "8px", marginRight: "8px" }}
+                />
+                <span style={{ color: "#000000", fontWeight: 400 }}>Ficha do Paciente</span>
+              </nav>
+            </div>
+
+            <div
+              className="text-center"
+              style={{ margin: "0 auto", width: "654px", marginTop: "calc(180px - 80px)" }}
+            >
+              <h1
+                style={{
+                  fontFamily: "Inter",
+                  fontWeight: 600,
+                  fontSize: "24px",
+                  color: "#000000",
+                  width: "654px",
+                  margin: "0 auto",
+                  marginBottom: "4px",
+                }}
+              >
+                Ficha do Paciente
+              </h1>
+              <p
+                style={{
+                  fontFamily: "Inter",
+                  fontWeight: 400,
+                  fontSize: "16px",
+                  lineHeight: "24px",
+                  color: "#888888",
+                  width: "654px",
+                  margin: "0 auto",
+                }}
+              >
+                Execute o fluxo de triagem para gerar os dados clínicos aqui.
+              </p>
+            </div>
+
+            <div
+              style={{ margin: "0 auto", width: "654px", marginTop: "86px", marginBottom: "165px" }}
+            >
+              <div
+                className="flex flex-col items-center justify-center text-center border border-dashed border-gray-300 bg-white p-12 rounded-lg"
+                style={{ gap: "16px" }}
+              >
+                <h2 style={{ fontFamily: "Inter", fontWeight: 600, fontSize: "20px" }}>
+                  Nenhuma ficha disponível
+                </h2>
+                <p style={{ fontFamily: "Inter", fontSize: "14px", color: "#6B6B6B" }}>
+                  Realize uma triagem para visualizar a ficha do paciente.
+                </p>
+                <button
+                  type="button"
+                  className="text-white font-medium hover:opacity-90 transition-opacity"
+                  style={{
+                    fontFamily: "Inter",
+                    fontSize: "14px",
+                    lineHeight: "24px",
+                    fontWeight: 600,
+                    width: "160px",
+                    height: "40px",
+                    backgroundColor: "#20CAD5",
+                    borderRadius: "6px",
+                  }}
+                  onClick={() => navigate("/triagem")}
+                >
+                  Ir para triagem
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const priorityLevel = latestSnapshot.priority.level as PriorityLevel;
   const paciente = {
-    senha: "XC23",
-    nome: "José Costa Araújo",
-    data: "Sex, 20 Ago",
-    hora: "03:09 manhã",
-    motivo: "Convulção",
-    prioridade: "Emergência",
-    nomeCompleto: "José Costa Araújo",
-    dataNascimento: "23/04/1932",
-    pressao: "123/84",
-    bpm: "340 bpm",
-    temperatura: "39.8 C°",
-    queixaPrincipal:
-      "Paciente apresenta episódios de convulsões, relatados recentemente.",
+    senha: "--",
+    nome: latestSnapshot.formData.nomeCompleto || "Paciente",
+    data: new Intl.DateTimeFormat("pt-BR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+    }).format(latestSnapshot.timestamp),
+    hora: new Intl.DateTimeFormat("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(latestSnapshot.timestamp),
+    motivo: latestSnapshot.formData.queixaPrincipal || "Triagem recente",
+    prioridade: priorityLevel,
+    priorityColor: PRIORITY_BADGE_STYLES[priorityLevel]?.hex ?? FALLBACK_PRIORITY_COLOR,
+    nomeCompleto: latestSnapshot.formData.nomeCompleto || "Paciente",
+    dataNascimento:
+      latestSnapshot.formData.dia &&
+      latestSnapshot.formData.mes &&
+      latestSnapshot.formData.ano
+        ? `${latestSnapshot.formData.dia}/${latestSnapshot.formData.mes}/${latestSnapshot.formData.ano}`
+        : "--/--/----",
+    pressao: latestSnapshot.formData.pressao || "--",
+    bpm: latestSnapshot.formData.bpm || "--",
+    temperatura: latestSnapshot.formData.temperatura || "--",
+    queixaPrincipal: latestSnapshot.formData.queixaPrincipal || "Não informado.",
     descricaoDetalhada:
-      "O paciente começou a apresentar episódios convulsivos há pouco tempo. As convulsões ocorreram de forma súbita, sem aviso prévio, e envolveram perda momentânea de consciência e movimentos involuntários. Não há confirmação de gatilhos específicos, mas os episódios foram observados em estado de vigília. Após as crises, o paciente apresentou confusão mental temporária e cansaço.",
+      latestSnapshot.formData.descricaoSintomas || "Sem descrição detalhada registrada.",
     sintomaSeveridade:
-      "Dor muito intensa / falta de ar moderada a intensa",
+      latestSnapshot.priority.reasons.join(", ") || "Sem fatores críticos listados.",
+    fatores: latestSnapshot.priority.reasons,
   };
 
   return (
@@ -184,7 +318,9 @@ const FichaPaciente: React.FC = () => {
                   </span>
                   <span
                     className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white"
-                    style={{ backgroundColor: '#EF4444' }}
+                    style={{
+                      backgroundColor: paciente.priorityColor ?? FALLBACK_PRIORITY_COLOR,
+                    }}
                   >
                     {paciente.prioridade}
                   </span>
@@ -325,6 +461,7 @@ const FichaPaciente: React.FC = () => {
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '#f6f6f6';
                   }}
+                  onClick={() => navigate("/triagem")}
                 >
                   Voltar
                 </button>
@@ -350,6 +487,10 @@ const FichaPaciente: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '#f6f6f6';
+                    }}
+                    onClick={() => {
+                      setLatestSnapshot(null);
+                      navigate("/triagem");
                     }}
                   >
                     Cancelar

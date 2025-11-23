@@ -1,7 +1,9 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronRight, ChevronDown} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import Header from "../components/dashboard/Header";
+import { PriorityResult, calculatePriority } from "../utils/triageLogic";
+import { useTriageContext, TriageFormData } from "../contexts/TriageContext";
 
 interface CustomCheckboxProps {
   name: string;
@@ -64,33 +66,109 @@ const CustomCheckbox: React.FC<CustomCheckboxProps> = ({ name, checked, onChange
   );
 };
 
+const initialFormState: TriageFormData = {
+  nomeCompleto: "",
+  dia: "",
+  mes: "",
+  ano: "",
+  pressao: "",
+  bpm: "",
+  temperatura: "",
+  queixaPrincipal: "",
+  descricaoSintomas: "",
+  sintomas: {
+    dorIntensa: false,
+    febreAlta: false,
+    dorLeve: false,
+    queixasLeves: false,
+  },
+};
+
 const Triagem: React.FC = () => {
-  const [formData, setFormData] = useState({
-    nomeCompleto: "",
-    dia: "",
-    mes: "",
-    ano: "",
-    pressao: "",
-    bpm: "",
-    temperatura: "",
-    queixaPrincipal: "",
-    descricaoSintomas: "",
-    sintomas: {
-      dorIntensa: false,
-      febreAlta: false,
-      dorLeve: false,
-      queixasLeves: false,
-    },
-  });
+  const navigate = useNavigate();
+  const { latestSnapshot, setLatestSnapshot } = useTriageContext();
+  const [formData, setFormData] = useState<TriageFormData>(initialFormState);
+  const [priorityResult, setPriorityResult] = useState<PriorityResult | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isHydratedFromSnapshot, setIsHydratedFromSnapshot] = useState(false);
+
+  useEffect(() => {
+    if (latestSnapshot && !isHydratedFromSnapshot) {
+      setFormData(latestSnapshot.formData);
+      setPriorityResult(latestSnapshot.priority);
+      setIsHydratedFromSnapshot(true);
+    }
+  }, [latestSnapshot, isHydratedFromSnapshot]);
+
+  const maskFieldValue = (name: string, value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+
+    if (name === "pressao") {
+      const digits = trimmed.replace(/\D/g, "").slice(0, 6);
+      const parte1 = digits.slice(0, 3);
+      const parte2 = digits.slice(3);
+      return parte2 ? `${parte1}/${parte2}` : parte1;
+    }
+
+    if (name === "bpm") {
+      const digits = trimmed.replace(/\D/g, "").slice(0, 3);
+      return digits ? `${digits} bpm` : "";
+    }
+
+    if (name === "temperatura") {
+      const digits = trimmed.replace(/\D/g, "").slice(0, 4);
+      if (!digits) return "";
+      if (digits.length === 1) {
+        return `0.${digits} °C`;
+      }
+      const inteiro = digits.slice(0, -1);
+      const decimal = digits.slice(-1);
+      return `${Number(inteiro)}.${decimal} °C`;
+    }
+
+    return value;
+  };
+
+  const normalizeNomeCompleto = (value: string): string =>
+    value
+      .replace(/[^a-zA-ZÀ-ÿ\s']/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/^\s/, "");
+
+  const stripUnitValue = (name: string, value: string): string => {
+    if (name === "pressao") {
+      return maskFieldValue(name, value);
+    }
+    if (name === "bpm") {
+      return value.replace(/\D/g, "");
+    }
+    if (name === "temperatura") {
+      return value.replace(/[^0-9.,]/g, "");
+    }
+    return value;
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    const inputType = (e.nativeEvent as InputEvent)?.inputType ?? "";
+    const isDeletion = inputType.startsWith("delete");
+
+    let nextValue = value;
+    if (name === "nomeCompleto") {
+      nextValue = normalizeNomeCompleto(value);
+    } else if (["pressao", "bpm", "temperatura"].includes(name)) {
+      nextValue = isDeletion ? stripUnitValue(name, value) : maskFieldValue(name, value);
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: nextValue,
     }));
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -99,6 +177,7 @@ const Triagem: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,9 +191,63 @@ const Triagem: React.FC = () => {
     }));
   };
 
+  const fieldErrors = useMemo(() => ({
+    nomeCompleto: !formData.nomeCompleto.trim() ? "Informe o nome completo." : "",
+    dataNascimento:
+      !formData.dia || !formData.mes || !formData.ano ? "Informe a data de nascimento completa." : "",
+    pressao: !formData.pressao.trim() ? "Informe a pressão arterial." : "",
+    bpm: !formData.bpm.trim() ? "Informe os batimentos por minuto." : "",
+    temperatura: !formData.temperatura.trim() ? "Informe a temperatura corporal." : "",
+    queixaPrincipal: !formData.queixaPrincipal.trim() ? "Descreva a queixa principal." : "",
+    descricaoSintomas: "",
+  }), [formData]);
+
+  const validationErrors = useMemo(
+    () => Object.values(fieldErrors).filter(Boolean),
+    [fieldErrors],
+  );
+
+  const showFieldError = (field: keyof typeof fieldErrors) =>
+    touched[field] && Boolean(fieldErrors[field]);
+
+  const handleReset = () => {
+    setFormData(initialFormState);
+    setPriorityResult(null);
+    setErrors([]);
+    setTouched({});
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Dados do formulário:", formData);
+    setErrors(validationErrors);
+    if (validationErrors.length > 0) {
+      setTouched((prev) => ({
+        ...prev,
+        nomeCompleto: true,
+        dataNascimento: true,
+        pressao: true,
+        bpm: true,
+        temperatura: true,
+        queixaPrincipal: true,
+        descricaoSintomas: true,
+      }));
+      setPriorityResult(null);
+      return;
+    }
+    const priority = calculatePriority(formData);
+    setPriorityResult(priority);
+    setErrors([]);
+    const snapshotForm: TriageFormData = {
+      ...formData,
+      sintomas: { ...formData.sintomas },
+    };
+    const snapshot = {
+      formData: snapshotForm,
+      priority,
+      timestamp: new Date(),
+    };
+    setLatestSnapshot(snapshot);
+    navigate("/ficha-paciente");
   };
 
   
@@ -196,14 +329,20 @@ const Triagem: React.FC = () => {
                   value={formData.nomeCompleto}
                   onChange={handleInputChange}
                   placeholder="Nome"
-                  className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                  className={`px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent ${
+                    showFieldError('nomeCompleto') ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   style={{
                     fontFamily: 'Inter',
                     fontSize: '14px',
                     width: '654px',
                     height: '40px',
                   }}
+                  aria-invalid={showFieldError('nomeCompleto')}
                 />
+                {showFieldError('nomeCompleto') && (
+                  <p className="text-xs text-red-600 mt-1">{fieldErrors.nomeCompleto}</p>
+                )}
               </div>
 
               {/* Data de Nascimento */}
@@ -229,7 +368,9 @@ const Triagem: React.FC = () => {
                         name="dia"
                         value={formData.dia}
                         onChange={handleSelectChange}
-                        className="px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none cursor-pointer text-sm leading-5 font-normal"
+                        className={`px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none cursor-pointer text-sm leading-5 font-normal ${
+                          showFieldError('dataNascimento') ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         style={{
                           fontFamily: 'Inter',
                           fontSize: '14px',
@@ -273,7 +414,9 @@ const Triagem: React.FC = () => {
                         name="mes"
                         value={formData.mes}
                         onChange={handleSelectChange}
-                        className="px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none cursor-pointer text-sm leading-5 font-normal"
+                        className={`px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none cursor-pointer text-sm leading-5 font-normal ${
+                          showFieldError('dataNascimento') ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         style={{
                           fontFamily: 'Inter',
                           fontSize: '14px',
@@ -317,7 +460,9 @@ const Triagem: React.FC = () => {
                         name="ano"
                         value={formData.ano}
                         onChange={handleSelectChange}
-                        className="px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none cursor-pointer text-sm leading-5 font-normal"
+                        className={`px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none cursor-pointer text-sm leading-5 font-normal ${
+                          showFieldError('dataNascimento') ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         style={{
                           fontFamily: 'Inter',
                           fontSize: '14px',
@@ -342,6 +487,9 @@ const Triagem: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                {showFieldError('dataNascimento') && (
+                  <p className="text-xs text-red-600 mt-1">{fieldErrors.dataNascimento}</p>
+                )}
               </div>
 
               {/* sinais vitais */}
@@ -366,9 +514,11 @@ const Triagem: React.FC = () => {
                       id="pressao"
                       name="pressao"
                       value={formData.pressao}
-                      onChange={handleInputChange}
+                    onChange={handleInputChange}
                       placeholder="000/000"
-                      className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                      className={`px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent ${
+                        showFieldError('pressao') ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       style={{
                         fontFamily: 'Inter',
                         fontSize: '14px',
@@ -395,9 +545,11 @@ const Triagem: React.FC = () => {
                       id="bpm"
                       name="bpm"
                       value={formData.bpm}
-                      onChange={handleInputChange}
+                    onChange={handleInputChange}
                       placeholder="000 bpm"
-                      className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                      className={`px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent ${
+                        showFieldError('bpm') ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       style={{
                         fontFamily: 'Inter',
                         fontSize: '14px',
@@ -424,9 +576,11 @@ const Triagem: React.FC = () => {
                       id="temperatura"
                       name="temperatura"
                       value={formData.temperatura}
-                      onChange={handleInputChange}
+                    onChange={handleInputChange}
                       placeholder="000.0 C°"
-                      className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                      className={`px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent ${
+                        showFieldError('temperatura') ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       style={{
                         fontFamily: 'Inter',
                         fontSize: '14px',
@@ -436,6 +590,19 @@ const Triagem: React.FC = () => {
                   </div>
                 </div>
               </div>
+              {(showFieldError('pressao') ||
+                showFieldError('bpm') ||
+                showFieldError('temperatura')) && (
+                <p className="text-xs text-red-600 mt-1">
+                  Revise sinais vitais: {[
+                    showFieldError('pressao') ? fieldErrors.pressao : null,
+                    showFieldError('bpm') ? fieldErrors.bpm : null,
+                    showFieldError('temperatura') ? fieldErrors.temperatura : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                </p>
+              )}
 
               {/* Queixa Principal */}
               <div className="mb-6">
@@ -459,7 +626,9 @@ const Triagem: React.FC = () => {
                     value={formData.queixaPrincipal}
                     onChange={handleInputChange}
                     placeholder="Digite as principais queixas do paciente..."
-                    className="px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                    className={`px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent ${
+                      showFieldError('queixaPrincipal') ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     style={{
                       fontFamily: 'Inter',
                       fontSize: '14px',
@@ -467,7 +636,9 @@ const Triagem: React.FC = () => {
                       height: '170px'
                     }}
                   />
-                  
+                  {showFieldError('queixaPrincipal') && (
+                    <p className="text-xs text-red-600 mt-1">{fieldErrors.queixaPrincipal}</p>
+                  )}
                 </div>
               </div>
 
@@ -488,20 +659,25 @@ const Triagem: React.FC = () => {
                 </label>
                 <div className="relative" style={{ width: '654px' }}>
                   <textarea 
-                    name="queixaPrincipal" 
-                    id="queixaPrincipal"
-                    value={formData.queixaPrincipal}
+                    name="descricaoSintomas" 
+                    id="descricaoSintomas"
+                    value={formData.descricaoSintomas}
                     onChange={handleInputChange}
-                    placeholder= "Descreva  os sintomas do paciente..."
-                    className="px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent "
+                    placeholder="Descreva os sintomas do paciente..."
+                    className={`px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent ${
+                      showFieldError('descricaoSintomas') ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     style={{
                       fontFamily: 'Inter',
                       fontSize: '14px',
                       width: '654px',
-                      height: '170px'
+                      height: '170px',
                     }}
+                    aria-invalid={showFieldError('descricaoSintomas')}
                   />
-
+                  {showFieldError('descricaoSintomas') && (
+                    <p className="text-xs text-red-600 mt-1">{fieldErrors.descricaoSintomas}</p>
+                  )}
                 </div>
               </div>
 
@@ -552,11 +728,12 @@ const Triagem: React.FC = () => {
                     borderRadius: '6px',
                     border: '1px solid #d7d7d7'
                   }}
+                  onClick={handleReset}
                 >
                   Cancelar
                 </button>
                 <button
-                  type="button"
+                  type="submit"
                   className="text-white hover:opacity-90 transition-opacity"
                   style={{
                     fontFamily: "Inter",
