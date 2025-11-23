@@ -11,13 +11,60 @@ interface DropdownPosition {
 }
 
 const DROPDOWN_WIDTH = 177;
+const API_BASE_URL =
+    (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL ??
+    'http://localhost:8000/api';
 
 const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
     const navigate = useNavigate();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 93, left: 0 });
+    const [usernameLabel, setUsernameLabel] = useState('Usuário');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        const storedUser = localStorage.getItem('authUser');
+        if (storedUser) {
+            try {
+                const parsed = JSON.parse(storedUser);
+                if (parsed?.username) {
+                    setUsernameLabel(parsed.username);
+                }
+            } catch {
+                // ignore parse errors
+            }
+        }
+    }, []);
+
+    const handleLogout = async () => {
+        const token = localStorage.getItem('authToken');
+        if (!token || isLoggingOut) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
+            navigate('/login');
+            return;
+        }
+
+        setIsLoggingOut(true);
+        try {
+            await fetch(`${API_BASE_URL}/sessions/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token }),
+            });
+        } catch (err) {
+            console.error('Erro ao fazer logout', err);
+        } finally {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
+            setIsLoggingOut(false);
+            setIsDropdownOpen(false);
+            navigate('/login');
+        }
+    };
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -128,7 +175,7 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
 
                     {/* username foto de perfil */}
                     <div className="flex items-center" style={{ gap: '18px' }}>
-                        <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '12px', color: '#000000'}}>Username Sobrenome</span>
+                        <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '12px', color: '#000000'}}>{usernameLabel}</span>
                         <div className="relative" ref={dropdownRef}>
                             <img 
                                 src="/pessoa.png"
@@ -149,10 +196,10 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
                                     }}
                                 >
                                     <div 
-                                        className="px-4 cursor-pointer transition-colors"
+                                        className="px-4 cursor-default"
                                         style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '14px', color: '#000000', paddingTop: '12px', paddingBottom: '0px' }}
                                     >
-                                        Nome do Usuário
+                                        {usernameLabel}
                                     </div>
                                     <div 
                                         style={{ 
@@ -162,16 +209,14 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
                                             margin: '10px auto'
                                         }}
                                     ></div>
-                                    <div 
-                                        className="px-4 cursor-pointer transition-colors text-[#5E5E5E] hover:text-[#F37F73]"
+                                    <button 
+                                        className="px-4 w-full text-left transition-colors text-[#5E5E5E] hover:text-[#F37F73]"
                                         style={{ fontFamily: 'Inter', fontWeight: 300, fontSize: '14px', paddingTop: '0px', paddingBottom: '12px' }}
-                                        onClick={() => {
-                                            // TODO: implementar lógica de logout
-                                            navigate('/login');
-                                        }}
+                                        onClick={handleLogout}
+                                        disabled={isLoggingOut}
                                     >
-                                        Sair
-                                    </div>
+                                        {isLoggingOut ? 'Saindo...' : 'Sair'}
+                                    </button>
                                 </div>
                             )}
                         </div>

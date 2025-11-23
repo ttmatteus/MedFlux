@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Triagem from './pages/Triagem'
 import FichaPaciente from './pages/FichaPaciente'
+import ProtectedRoute from './routes/ProtectedRoute'
 
 function App() {
   return (
@@ -10,9 +11,30 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/triagem" element={<Triagem />} />
-        <Route path="/ficha-paciente" element={<FichaPaciente />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/triagem"
+          element={
+            <ProtectedRoute>
+              <Triagem />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ficha-paciente"
+          element={
+            <ProtectedRoute>
+              <FichaPaciente />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   )
