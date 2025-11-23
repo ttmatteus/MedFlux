@@ -9,6 +9,19 @@ interface CallsPanelProps {
 const CallsPanel: React.FC<CallsPanelProps> = ({ calls }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
+  const renderPageButton = (page: number) => (
+    <button
+      key={page}
+      className={`px-3 py-1 rounded-[6px] transition-colors ${
+        currentPage === page ? "border border-gray-300" : "border border-transparent"
+      } hover:bg-[#F4F5F5]`}
+      style={{ fontSize: '14px', lineHeight: '24px', fontWeight: 500, color: '#000000' }}
+      onClick={() => setCurrentPage(page)}
+    >
+      {page}
+    </button>
+  );
+
   return (
     <div className="bg-white rounded-lg shadow-sm" style={{ width: '743px', height: '483px', padding: '16px 0px 18px 0px'}}>
       <h2 style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '16px', lineHeight: '24px', color: '#000000', paddingLeft: '27px', paddingRight: '16px'}} className="mb-4">
@@ -24,7 +37,7 @@ const CallsPanel: React.FC<CallsPanelProps> = ({ calls }) => {
               <th className="text-left py-2" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '13px', lineHeight: '24px', color: '#000000', paddingLeft: '27px', paddingRight: '32px'}}>
                 Nome
               </th>
-              <th className="text-left py-2" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '13px', lineHeight: '24px', color: '#000000', paddingLeft: '27px', paddingRight: '32px'}}>
+              <th className="text-left py-2" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '13px', lineHeight: '24px', color: '#000000', paddingLeft: '0px', paddingRight: '32px'}}>
                 Prioridade
               </th>
             </tr>
@@ -41,7 +54,7 @@ const CallsPanel: React.FC<CallsPanelProps> = ({ calls }) => {
                 <td className="py-3 text-left" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '13px', lineHeight: '24px', color: '#000000', paddingLeft: '32px', paddingRight: '12px'}}>
                   {call.name}
                 </td>
-                <td className="py-3 text-left" style={{ paddingLeft: '40px', paddingRight: '16px' }}>
+                <td className="py-3 text-left" style={{ paddingLeft: '0px', paddingRight: '16px' }}>
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-medium text-white ${!call.priorityColorHex ? call.priorityColor : ''}`}
                     style={call.priorityColorHex ? { backgroundColor: call.priorityColorHex }: {}}
@@ -65,39 +78,7 @@ const CallsPanel: React.FC<CallsPanelProps> = ({ calls }) => {
           <ChevronLeft size={16}/>
           <span>Previous</span>
         </button>
-        <button
-          className={`px-3 py-1 rounded ${
-            currentPage === 1
-              ? "border border-gray-300"
-              : ""
-            }`}
-            style={{ fontSize: '14px', lineHeight: '24px', fontWeight: 500, color: '#000000'}}
-            onClick={() => setCurrentPage(1)}
-        >
-          1
-        </button>
-        <button
-          className={`px-3 py-1 rounded ${
-            currentPage === 2
-              ? "border border-gray-300"
-              : ""
-            }`}
-            style={{ fontSize: '14px', lineHeight: '24px', fontWeight: 500, color: '#000000'}}
-            onClick={() => setCurrentPage(2)}
-        >
-          2
-        </button>
-        <button
-          className={`px-3 py-1 rounded ${
-            currentPage === 3
-              ? "border border-gray-300"
-              : ""
-            }`}
-            style={{ fontSize: '14px', lineHeight: '24px', fontWeight: 500, color: '#000000'}}
-            onClick={() => setCurrentPage(3)}
-        >
-          3
-        </button>
+        {[1, 2, 3].map(renderPageButton)}
         <MoreHorizontal size={16} color="#000000" style={{ marginLeft: '8px', marginRight: '8px' }} />
         <button
           className="flex items-center gap-2 px-2 py-1"

@@ -19,7 +19,6 @@ const Login: React.FC = () => {
     fieldWidth: '320px',
     fieldHeight: '68px',
     buttonHeight: '40px',
-    headerHeight: '12px',
   };
 
   const SPACING = {
@@ -52,12 +51,6 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-        {/* Header */}
-        <div 
-            className="w-full bg-[#98dada]"
-            style={{ height: SIZES.headerHeight }}
-        />
-
         {/* container principal */}
         <div className="flex flex-1">
             <div className="hidden md:flex md:w-[50%] bg-[#98dada]"
