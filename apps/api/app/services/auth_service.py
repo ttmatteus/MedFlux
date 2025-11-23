@@ -7,6 +7,7 @@ from typing import Dict, Optional
 from uuid import uuid4
 
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.data_structures import HashTable
@@ -79,6 +80,7 @@ class AuthService:
     def __init__(self, database_path: str = str(settings.DATABASE_PATH)) -> None:
         self._database_path = database_path
         self._sessions = SessionStore()
+        self._pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def _get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self._database_path)
@@ -95,7 +97,7 @@ class AuthService:
 
     def login(self, username: str, password: str) -> Dict[str, object]:
         user = self._fetch_user(username)
-        if not user or user["password_hash"] != password:
+        if not user or not self._pwd_context.verify(password, user["password_hash"]):
             raise InvalidCredentialsError("Credenciais inválidas")
 
         session = self._sessions.create(
