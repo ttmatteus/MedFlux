@@ -1,55 +1,21 @@
-"""
-Tabela Hash para Sessões/Usuários
-"""
 from typing import Dict, Generic, Iterator, Optional, Tuple, TypeVar
 
-K = TypeVar("K")
-V = TypeVar("V")
-
+K = TypeVar("K") 
+V = TypeVar("V") 
 
 class HashTable(Generic[K, V]):
-    """
-    Wrapper sobre dict do Python para demonstrar uso de tabela hash.
-    Usado para armazenar sessões/tokens em memória.
-    """
 
     def __init__(self) -> None:
-        """
-        TODO: Inicializar dict interno.
-        """
-        pass
+        self._data: Dict[(K, V)] = {}
 
     def set(self, key: K, value: V) -> None:
-        """
-        Armazena um par chave-valor.
-        
-        TODO: Implementar inserção no dict.
-        """
-        pass
+        self._data[key] = value
 
     def get(self, key: K) -> Optional[V]:
-        """
-        Retorna o valor associado à chave.
-        
-        TODO: Implementar busca no dict.
-        Retornar None se a chave não existir.
-        """
-        pass
-
+        return self._data.get(key)
+    
     def remove(self, key: K) -> None:
-        """
-        Remove uma chave da tabela.
-        
-        TODO: Implementar remoção do dict.
-        Não gerar erro se a chave não existir.
-        """
-        pass
+        self._data.pop(key, None)
 
     def items(self) -> Iterator[Tuple[K, V]]:
-        """
-        Retorna iterador de pares (chave, valor).
-        
-        TODO: Retornar iterador do dict.items().
-        """
-        pass
-
+        return self._data.items()
