@@ -13,35 +13,20 @@ class TicketStack:
     """
 
     def __init__(self, max_size: int = 50) -> None:
-        """
-        TODO: Inicializar lista interna e guardar max_size.
-        """
-        pass
+        self.max_size = max_size
+        self._stack: List[Ticket] = []
 
     def push(self, ticket: Ticket) -> None:
-        """
-        Adiciona ticket no topo da pilha.
-        
-        TODO: Implementar inserção.
-        Se o tamanho exceder max_size, remover o item mais antigo (primeiro da lista).
-        """
-        pass
+        self._stack.append(ticket)# Adiciona no topo
+        if len(self._stack) > self.max_size:# Remove o mais antigo se passou do limite
+            self._stack.pop(0)
 
     def pop(self) -> Optional[Ticket]:
-        """
-        Remove e retorna o último ticket da pilha.
-        
-        TODO: Implementar remoção do topo.
-        Retornar None se a pilha estiver vazia.
-        """
-        pass
+        if not self._stack: # Verifica se a pilha está vazia.
+            return None
+        return self._stack.pop() # Remove e retorna o último elemento da lista.
 
     def latest(self, limit: int = 10) -> List[Ticket]:
-        """
-        Retorna os últimos N tickets em ordem cronológica reversa.
-        
-        TODO: Pegar os últimos 'limit' items e inverter a ordem.
-        Exemplo: se pilha = [A, B, C], latest(2) deve retornar [C, B]
-        """
-        pass
+        return self._stack[-limit:][::-1] # Pega os últimos 'limit' itens
+
 
