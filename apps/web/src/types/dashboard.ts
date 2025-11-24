@@ -1,16 +1,10 @@
-export interface Call {
-  id: string;
-  name: string;
-  priority: string;
-  priorityColor: string;
-  priorityColorHex?: string;
-  image: boolean;
-}
+import type { PriorityLevel } from "../constants/priority";
+import type { TicketDTO } from "./ticket";
+
+export type Call = TicketDTO;
 
 export interface RoomStatus {
-  priority: string;
-  priorityColor: string;
-  priorityColorHex?: string;
+  priority: PriorityLevel;
   status: string;
 }
 

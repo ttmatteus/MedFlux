@@ -13,7 +13,7 @@ interface TriageFormData {
 }
 
 export interface PriorityResult {
-  level: string;
+  level: PriorityLevel;
   color: string;
   description: string;
   reasons: string[];

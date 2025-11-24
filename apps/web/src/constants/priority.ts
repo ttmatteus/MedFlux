@@ -19,3 +19,11 @@ export const PRIORITY_BADGE_STYLES: Record<
 export const getPriorityBadge = (level: PriorityLevel) =>
   PRIORITY_BADGE_STYLES[level];
 
+export const PRIORITY_ORDER: PriorityLevel[] = [
+  "Emergência",
+  "Muito Urgente",
+  "Urgente",
+  "Pouco Urgente",
+  "Não Urgente",
+];
+

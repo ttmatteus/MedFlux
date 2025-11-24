@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
     showSearch?: boolean;
+    onSearchChange?: (value: string) => void;
+    suggestions?: string[];
+    onSuggestionSelect?: (value: string) => void;
 }
 
 interface DropdownPosition {
@@ -15,13 +18,21 @@ const API_BASE_URL =
     (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL ??
     'http://localhost:8000/api';
 
-const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
+const Header: React.FC<HeaderProps> = ({
+    showSearch = false,
+    onSearchChange,
+    suggestions = [],
+    onSuggestionSelect,
+}) => {
     const navigate = useNavigate();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 93, left: 0 });
     const [usernameLabel, setUsernameLabel] = useState('Usuário');
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLDivElement>(null);
+    const [searchValue, setSearchValue] = useState("");
+    const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('authUser');
@@ -70,16 +81,24 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsDropdownOpen(false);
             }
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setIsSuggestionOpen(false);
+            }
         };
 
-        if (isDropdownOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isDropdownOpen]);
+    }, []);
+
+    const filteredSuggestions = useMemo(() => {
+        if (!searchValue.trim()) {
+            return suggestions.slice(0, 5);
+        }
+        const lower = searchValue.toLowerCase();
+        return suggestions.filter((item) => item.toLowerCase().includes(lower)).slice(0, 5);
+    }, [suggestions, searchValue]);
 
     const updateDropdownPosition = () => {
         if (!dropdownRef.current) return;
@@ -132,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
 
                     {/* barra de pesquisa - centralizada */}
                     {showSearch && (
-                        <div className="flex-1 flex justify-center px-4">
+                        <div className="flex-1 flex justify-center px-4" ref={searchRef}>
                             <div className="relative" style={{ width: '499px', height: '36px' }}>
                                 <input
                                     type="text"
@@ -145,7 +164,30 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
                                         borderWidth: '1px',
                                         height: '36px',
                                     }}
+                                    value={searchValue}
+                                    onFocus={() => setIsSuggestionOpen(true)}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setSearchValue(value);
+                                        onSearchChange?.(value.toLowerCase());
+                                        setIsSuggestionOpen(true);
+                                    }}
                                 />
+                                {searchValue && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearchValue("");
+                                            onSearchChange?.("");
+                                            setIsSuggestionOpen(false);
+                                            onSuggestionSelect?.("");
+                                        }}
+                                        className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        style={{ fontSize: '14px' }}
+                                    >
+                                        ×
+                                    </button>
+                                )}
                                 <svg
                                     className="absolute left-3 top-1/2 transform -translate-y-1/2"
                                     width="16"
@@ -169,6 +211,29 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
                                         strokeLinejoin="round"
                                     />
                                 </svg>
+                                {isSuggestionOpen && filteredSuggestions.length > 0 && (
+                                    <div
+                                        className="absolute z-50 bg-white rounded-md shadow-lg mt-2 border border-gray-100"
+                                        style={{ width: '100%', maxHeight: '180px', overflowY: 'auto' }}
+                                    >
+                                        {filteredSuggestions.map((item) => (
+                                            <button
+                                                type="button"
+                                                key={item}
+                                                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                                                style={{ fontFamily: 'Inter', fontSize: '14px', color: '#2A2A2A' }}
+                                                onClick={() => {
+                                                    setSearchValue(item);
+                                                    onSearchChange?.(item.toLowerCase());
+                                                    onSuggestionSelect?.(item);
+                                                    setIsSuggestionOpen(false);
+                                                }}
+                                            >
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -178,9 +243,9 @@ const Header: React.FC<HeaderProps> = ({ showSearch = false }) => {
                         <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '12px', color: '#000000'}}>{usernameLabel}</span>
                         <div className="relative" ref={dropdownRef}>
                             <img 
-                                src="/pessoa.png"
+                            src="/pessoa.png"
                                 style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', cursor: 'pointer'}} 
-                                alt="" 
+                            alt="" 
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             />
                             {isDropdownOpen && (
