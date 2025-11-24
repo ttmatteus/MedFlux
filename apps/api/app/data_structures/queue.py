@@ -15,36 +15,35 @@ class TicketQueue:
 
     def __init__(self) -> None:
         """
-        TODO: Inicializar deque interno para armazenar tickets.
+        Cria uma fila vazia baseada em deque para operações O(1).
         """
-        pass
+        self._queue: Deque[Ticket] = deque()
 
     def enqueue(self, ticket: Ticket) -> None:
         """
-        Adiciona um ticket no fim da fila.
-        
-        TODO: Implementar inserção no final do deque.
+        Adiciona um ticket no fim da fila mantendo a ordem FIFO.
         """
-        pass
+        self._queue.append(ticket)
 
     def dequeue(self) -> Optional[Ticket]:
         """
         Remove e retorna o primeiro ticket da fila.
-        
-        TODO: Implementar remoção do início do deque.
-        Retornar None se a fila estiver vazia.
+
+        Retorna None quando a fila está vazia.
         """
-        pass
+        if not self._queue:
+            return None
+        return self._queue.popleft()
 
     def __len__(self) -> int:
         """
-        TODO: Retornar quantidade de tickets na fila.
+        Retorna a quantidade de tickets atualmente enfileirados.
         """
-        pass
+        return len(self._queue)
 
     def __iter__(self) -> Iterator[Ticket]:
         """
-        TODO: Permitir iteração sobre os tickets da fila.
+        Permite iteração preservando a ordem atual da fila.
         """
-        pass
+        return iter(self._queue)
 

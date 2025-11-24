@@ -54,3 +54,5 @@ out/
 dist/
 build/
 
+# Vite
+.vite/
