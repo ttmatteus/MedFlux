@@ -72,7 +72,7 @@ const Login: React.FC = () => {
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('authUser', JSON.stringify(data.user));
 
-      navigate('/dashboard');
+    navigate('/dashboard');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Erro inesperado ao fazer login.');
     } finally {

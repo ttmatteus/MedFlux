@@ -1,29 +1,12 @@
-import { Call, RoomStatus } from "../types/dashboard";
-import { PriorityLevel, getPriorityBadge } from "./priority";
+import { RoomStatus } from "../types/dashboard";
+import { PRIORITY_ORDER } from "./priority";
 
-const badgeProps = (priority: PriorityLevel) => {
-  const badge = getPriorityBadge(priority);
-  return {
-    priorityColor: badge.badgeClass,
-    priorityColorHex: badge.hex,
-  };
-};
-
-export const MOCK_CALLS: Call[] = [
-  { id: "XC23", name: "Sebastião da Silva", priority: "Emergência", ...badgeProps("Emergência"), image: true },
-  { id: "CM56", name: "Carlos Alberto", priority: "Muito Urgente", ...badgeProps("Muito Urgente"), image: false },
-  { id: "CM22", name: "Frederico Junior", priority: "Urgente", ...badgeProps("Urgente"), image: false },
-  { id: "CM67", name: "Marta Reis", priority: "Pouco Urgente", ...badgeProps("Pouco Urgente"), image: false },
-  { id: "XC23", name: "Miguel Alencar", priority: "Pouco Urgente", ...badgeProps("Pouco Urgente"), image: false },
-  { id: "CM68", name: "Ana Maria Miriel", priority: "Não Urgente", ...badgeProps("Não Urgente"), image: false },
-];
-
-export const MOCK_ROOM_STATUS: RoomStatus[] = [
-  { priority: "Emergência", ...badgeProps("Emergência"), status: "Ocupada" },
-  { priority: "Muito Urgente", ...badgeProps("Muito Urgente"), status: "Livre" },
-  { priority: "Urgente", ...badgeProps("Urgente"), status: "Livre" },
-  { priority: "Pouco Urgente", ...badgeProps("Pouco Urgente"), status: "Ocupada" },
-  { priority: "Não Urgente", ...badgeProps("Não Urgente"), status: "Livre" },
+export const ROOM_STATUS: RoomStatus[] = [
+  { priority: "Emergência", status: "Ocupada" },
+  { priority: "Muito Urgente", status: "Livre" },
+  { priority: "Urgente", status: "Livre" },
+  { priority: "Pouco Urgente", status: "Ocupada" },
+  { priority: "Não Urgente", status: "Livre" },
 ];
 
 export const DASHBOARD_STYLES = {
@@ -66,4 +49,12 @@ export const DASHBOARD_STYLES = {
     },
   },
 } as const;
+
+export const sortTicketsByPriority = <T extends { priority: string }>(tickets: T[]) => {
+  return [...tickets].sort(
+    (a, b) =>
+      PRIORITY_ORDER.indexOf(a.priority as (typeof PRIORITY_ORDER)[number]) -
+      PRIORITY_ORDER.indexOf(b.priority as (typeof PRIORITY_ORDER)[number]),
+  );
+};
 

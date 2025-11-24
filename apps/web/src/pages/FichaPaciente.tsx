@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Calendar, Clock, FileText } from "lucide-react";
 import Header from "../components/dashboard/Header";
 import { useTriageContext } from "../contexts/TriageContext";
 import { PRIORITY_BADGE_STYLES, PriorityLevel } from "../constants/priority";
+import { createTicket } from "../services/ticketApi";
 
 const FALLBACK_PRIORITY: PriorityLevel = "Emergência";
 const FALLBACK_PRIORITY_COLOR = PRIORITY_BADGE_STYLES[FALLBACK_PRIORITY].hex;
@@ -11,6 +12,8 @@ const FALLBACK_PRIORITY_COLOR = PRIORITY_BADGE_STYLES[FALLBACK_PRIORITY].hex;
 const FichaPaciente: React.FC = () => {
   const navigate = useNavigate();
   const { latestSnapshot, setLatestSnapshot } = useTriageContext();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!latestSnapshot) {
     return (
@@ -123,9 +126,31 @@ const FichaPaciente: React.FC = () => {
     );
   }
 
-  const priorityLevel = latestSnapshot.priority.level as PriorityLevel;
+  const priorityLevel = latestSnapshot.priority.level;
+  const handleGenerateTicket = async () => {
+    if (!latestSnapshot || isGenerating) {
+      return;
+    }
+    setIsGenerating(true);
+    setErrorMessage(null);
+    try {
+      await createTicket({
+        patientName: latestSnapshot.formData.nomeCompleto,
+        priority: priorityLevel,
+        notes: latestSnapshot.formData.queixaPrincipal || latestSnapshot.formData.descricaoSintomas || undefined,
+      });
+      setLatestSnapshot(null);
+      navigate("/dashboard");
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Não foi possível gerar a senha. Tente novamente.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
   const paciente = {
-    senha: "--",
+    senha: latestSnapshot.ticket?.code ?? "--",
     nome: latestSnapshot.formData.nomeCompleto || "Paciente",
     data: new Intl.DateTimeFormat("pt-BR", {
       weekday: "short",
@@ -497,7 +522,7 @@ const FichaPaciente: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    className="text-white font-medium hover:opacity-90 transition-opacity"
+                    className="text-white font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                     style={{
                       fontFamily: 'Inter',
                       fontSize: '14px',
@@ -508,10 +533,20 @@ const FichaPaciente: React.FC = () => {
                       backgroundColor: '#20CAD5',
                       borderRadius: '6px',
                     }}
+                    onClick={handleGenerateTicket}
+                    disabled={isGenerating}
                   >
-                    Gerar Senha
+                    {isGenerating ? 'Gerando...' : 'Gerar Senha'}
                   </button>
                 </div>
+                {errorMessage && (
+                  <p
+                    className="text-sm text-red-500 mt-3"
+                    style={{ fontFamily: 'Inter' }}
+                  >
+                    {errorMessage}
+                  </p>
+                )}
               </div>
             </div>
           </div>

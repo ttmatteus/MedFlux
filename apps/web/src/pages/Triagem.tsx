@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import Header from "../components/dashboard/Header";
-import { PriorityResult, calculatePriority } from "../utils/triageLogic";
+import { calculatePriority } from "../utils/triageLogic";
 import { useTriageContext, TriageFormData } from "../contexts/TriageContext";
 
 interface CustomCheckboxProps {
@@ -88,15 +88,12 @@ const Triagem: React.FC = () => {
   const navigate = useNavigate();
   const { latestSnapshot, setLatestSnapshot } = useTriageContext();
   const [formData, setFormData] = useState<TriageFormData>(initialFormState);
-  const [priorityResult, setPriorityResult] = useState<PriorityResult | null>(null);
-  const [errors, setErrors] = useState<string[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isHydratedFromSnapshot, setIsHydratedFromSnapshot] = useState(false);
 
   useEffect(() => {
     if (latestSnapshot && !isHydratedFromSnapshot) {
       setFormData(latestSnapshot.formData);
-      setPriorityResult(latestSnapshot.priority);
       setIsHydratedFromSnapshot(true);
     }
   }, [latestSnapshot, isHydratedFromSnapshot]);
@@ -191,16 +188,18 @@ const Triagem: React.FC = () => {
     }));
   };
 
-  const fieldErrors = useMemo(() => ({
-    nomeCompleto: !formData.nomeCompleto.trim() ? "Informe o nome completo." : "",
-    dataNascimento:
-      !formData.dia || !formData.mes || !formData.ano ? "Informe a data de nascimento completa." : "",
-    pressao: !formData.pressao.trim() ? "Informe a pressão arterial." : "",
-    bpm: !formData.bpm.trim() ? "Informe os batimentos por minuto." : "",
-    temperatura: !formData.temperatura.trim() ? "Informe a temperatura corporal." : "",
-    queixaPrincipal: !formData.queixaPrincipal.trim() ? "Descreva a queixa principal." : "",
-    descricaoSintomas: "",
-  }), [formData]);
+  const fieldErrors = useMemo(
+    () => ({
+      nomeCompleto: !formData.nomeCompleto.trim() ? "Informe o nome completo." : "",
+      dataNascimento:
+        !formData.dia || !formData.mes || !formData.ano ? "Informe a data de nascimento completa." : "",
+      pressao: !formData.pressao.trim() ? "Informe a pressão arterial." : "",
+      bpm: !formData.bpm.trim() ? "Informe os batimentos por minuto." : "",
+      temperatura: !formData.temperatura.trim() ? "Informe a temperatura corporal." : "",
+      queixaPrincipal: !formData.queixaPrincipal.trim() ? "Descreva a queixa principal." : "",
+    }),
+    [formData],
+  );
 
   const validationErrors = useMemo(
     () => Object.values(fieldErrors).filter(Boolean),
@@ -212,14 +211,12 @@ const Triagem: React.FC = () => {
 
   const handleReset = () => {
     setFormData(initialFormState);
-    setPriorityResult(null);
-    setErrors([]);
     setTouched({});
+    setLatestSnapshot(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors(validationErrors);
     if (validationErrors.length > 0) {
       setTouched((prev) => ({
         ...prev,
@@ -229,14 +226,10 @@ const Triagem: React.FC = () => {
         bpm: true,
         temperatura: true,
         queixaPrincipal: true,
-        descricaoSintomas: true,
       }));
-      setPriorityResult(null);
       return;
     }
     const priority = calculatePriority(formData);
-    setPriorityResult(priority);
-    setErrors([]);
     const snapshotForm: TriageFormData = {
       ...formData,
       sintomas: { ...formData.sintomas },
@@ -340,9 +333,6 @@ const Triagem: React.FC = () => {
                   }}
                   aria-invalid={showFieldError('nomeCompleto')}
                 />
-                {showFieldError('nomeCompleto') && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.nomeCompleto}</p>
-                )}
               </div>
 
               {/* Data de Nascimento */}
@@ -487,9 +477,6 @@ const Triagem: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                {showFieldError('dataNascimento') && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.dataNascimento}</p>
-                )}
               </div>
 
               {/* sinais vitais */}
@@ -590,19 +577,7 @@ const Triagem: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {(showFieldError('pressao') ||
-                showFieldError('bpm') ||
-                showFieldError('temperatura')) && (
-                <p className="text-xs text-red-600 mt-1">
-                  Revise sinais vitais: {[
-                    showFieldError('pressao') ? fieldErrors.pressao : null,
-                    showFieldError('bpm') ? fieldErrors.bpm : null,
-                    showFieldError('temperatura') ? fieldErrors.temperatura : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                </p>
-              )}
+
 
               {/* Queixa Principal */}
               <div className="mb-6">
@@ -636,9 +611,6 @@ const Triagem: React.FC = () => {
                       height: '170px'
                     }}
                   />
-                  {showFieldError('queixaPrincipal') && (
-                    <p className="text-xs text-red-600 mt-1">{fieldErrors.queixaPrincipal}</p>
-                  )}
                 </div>
               </div>
 
@@ -664,20 +636,14 @@ const Triagem: React.FC = () => {
                     value={formData.descricaoSintomas}
                     onChange={handleInputChange}
                     placeholder="Descreva os sintomas do paciente..."
-                    className={`px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent ${
-                      showFieldError('descricaoSintomas') ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className="px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent border-gray-300"
                     style={{
                       fontFamily: 'Inter',
                       fontSize: '14px',
                       width: '654px',
                       height: '170px',
                     }}
-                    aria-invalid={showFieldError('descricaoSintomas')}
                   />
-                  {showFieldError('descricaoSintomas') && (
-                    <p className="text-xs text-red-600 mt-1">{fieldErrors.descricaoSintomas}</p>
-                  )}
                 </div>
               </div>
 

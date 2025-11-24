@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import type { TicketDTO } from '../types/ticket';
 import { PriorityResult } from '../utils/triageLogic';
 
 export interface TriageFormData {
@@ -23,6 +24,7 @@ export interface TriageSnapshot {
   formData: TriageFormData;
   priority: PriorityResult;
   timestamp: Date;
+  ticket?: TicketDTO;
 }
 
 interface TriageContextValue {

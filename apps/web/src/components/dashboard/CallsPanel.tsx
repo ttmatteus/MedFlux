@@ -1,22 +1,51 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-import { Call } from "../../types/dashboard";
+import { getPriorityBadge } from "../../constants/priority";
+import type { Call } from "../../types/dashboard";
 
 interface CallsPanelProps {
   calls: Call[];
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  highlightCode?: string;
 }
 
-const CallsPanel: React.FC<CallsPanelProps> = ({ calls }) => {
-  const [currentPage, setCurrentPage] = useState(1);
+export const CALLS_PAGE_SIZE = 6;
+
+const CallsPanel: React.FC<CallsPanelProps> = ({
+  calls,
+  currentPage,
+  onPageChange,
+  highlightCode,
+}) => {
+  const totalPages = Math.max(1, Math.ceil(calls.length / CALLS_PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedCalls = calls.slice(
+    (safePage - 1) * CALLS_PAGE_SIZE,
+    safePage * CALLS_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    if (currentPage !== safePage) {
+      onPageChange(safePage);
+    }
+  }, [currentPage, safePage, onPageChange]);
 
   const renderPageButton = (page: number) => (
     <button
       key={page}
-      className={`px-3 py-1 rounded-[6px] transition-colors ${
-        currentPage === page ? "border border-gray-300" : "border border-transparent"
-      } hover:bg-[#F4F5F5]`}
-      style={{ fontSize: '14px', lineHeight: '24px', fontWeight: 500, color: '#000000' }}
-      onClick={() => setCurrentPage(page)}
+      className={`px-3 py-1 rounded-[6px] transition-colors border ${
+        safePage === page
+          ? "bg-[#F4F5F5] border-[#E5E5E5]"
+          : "border-transparent hover:bg-[#F4F5F5] hover:border-[#E5E5E5]"
+      }`}
+      style={{
+        fontSize: "14px",
+        lineHeight: "24px",
+        fontWeight: 500,
+        color: "#000000",
+      }}
+      onClick={() => onPageChange(page)}
     >
       {page}
     </button>
@@ -43,27 +72,32 @@ const CallsPanel: React.FC<CallsPanelProps> = ({ calls }) => {
             </tr>
           </thead>
           <tbody>
-            {calls.map((call, index) => (
+            {pagedCalls.map((call, index) => {
+              const badge = getPriorityBadge(call.priority);
+              const isHighlighted = highlightCode === call.code;
+              return (
               <tr
-                key={index}
-                className={`transition-colors duration-200 hover:bg-gray-50 cursor-pointer ${index < calls.length - 1 ? 'border-b border-gray-100': ''} `}
+                key={call.code}
+                className={`transition-colors duration-200 cursor-pointer ${
+                  isHighlighted ? "bg-[#E0FBFD]" : "hover:bg-gray-50"
+                } ${index < pagedCalls.length - 1 ? 'border-b border-gray-100': ''} `}
               >
                 <td className="py-3" style={{ paddingLeft: '27px', paddingRight: '110px' }}>
-                  <span className="text-sm font-medium text-gray-800">{call.id}</span>
+                  <span className="text-sm font-medium text-gray-800">{call.code}</span>
                 </td>
-                <td className="py-3 text-left" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '13px', lineHeight: '24px', color: '#000000', paddingLeft: '32px', paddingRight: '12px'}}>
-                  {call.name}
+                <td className="py-3 text-left" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '13px', lineHeight: '24px', color: '#000000', paddingLeft: '27px', paddingRight: '12px'}}>
+                  {call.patientName}
                 </td>
                 <td className="py-3 text-left" style={{ paddingLeft: '0px', paddingRight: '16px' }}>
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium text-white ${!call.priorityColorHex ? call.priorityColor : ''}`}
-                    style={call.priorityColorHex ? { backgroundColor: call.priorityColorHex }: {}}
+                    className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white"
+                    style={{ backgroundColor: badge.hex }}
                   >
                     {call.priority}
                   </span>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
@@ -73,17 +107,19 @@ const CallsPanel: React.FC<CallsPanelProps> = ({ calls }) => {
         <button 
           className="flex items-center gap-2 px-2 py-1"
           style={{ fontSize: '14px', lineHeight: '24px', fontWeight: 500, color: '#000000'}}
-          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          onClick={() => onPageChange(Math.max(1, safePage - 1))}
+          disabled={safePage === 1}
         >
           <ChevronLeft size={16}/>
           <span>Previous</span>
         </button>
-        {[1, 2, 3].map(renderPageButton)}
-        <MoreHorizontal size={16} color="#000000" style={{ marginLeft: '8px', marginRight: '8px' }} />
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(renderPageButton)}
+        {totalPages > 1 && <MoreHorizontal size={16} color="#000000" style={{ marginLeft: '8px', marginRight: '8px' }} />}
         <button
           className="flex items-center gap-2 px-2 py-1"
           style={{ fontSize: '14px', lineHeight: '24px', fontWeight: 500, color: "#000000" }}
-          onClick={() => setCurrentPage(currentPage + 1)}
+          onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
+          disabled={safePage === totalPages}
         >
           <span>Next</span>
           <ChevronRight size={16} />

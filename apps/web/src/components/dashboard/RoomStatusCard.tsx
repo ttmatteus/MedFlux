@@ -1,5 +1,6 @@
 import React from "react";
-import { RoomStatus } from "../../types/dashboard";
+import { getPriorityBadge } from "../../constants/priority";
+import type { RoomStatus } from "../../types/dashboard";
 
 interface RoomStatusCardProps {
   roomStatus: RoomStatus[];
@@ -24,21 +25,23 @@ const RoomStatusCard: React.FC<RoomStatusCardProps> = ({ roomStatus }) => {
             </tr>
           </thead>
           <tbody>
-            {roomStatus.map((room, index) => (
+            {roomStatus.map((room, index) => {
+              const badge = getPriorityBadge(room.priority);
+              return (
               <tr key={index} className="transition-colors duration-200 hover:bg-gray-50 cursor-pointer" style={{ borderBottom: index < roomStatus.length  - 1 ? '2px solid #F4F5F5': 'none'}}>
                 <td className="py-3" style={{ paddingLeft: '45px', paddingRight: '0px'}}>
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium text-white ${!room.priorityColorHex ? room.priorityColor: ''}`}
-                    style={room.priorityColorHex ? { backgroundColor: room.priorityColorHex }: {}}
+                    className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white"
+                    style={{ backgroundColor: badge.hex }}
                   >
                     {room.priority}
                   </span>
                 </td>
-                <td className="py-3" style={{ fontFamily: "Inter", fontWeight: 400, fontSize: '13px', lineHeight: '24px', color: '000000', paddingLeft: '0px'}}>
+                <td className="py-3" style={{ fontFamily: "Inter", fontWeight: 400, fontSize: '13px', lineHeight: '24px', color: '#000000', paddingLeft: '0px'}}>
                   {room.status}
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
